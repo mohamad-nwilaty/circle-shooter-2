@@ -10,9 +10,177 @@ let Yvelocity = 0;
 let camera = {
     x: 0,
     y: 0,
-    Xoffset: width / 4,
-    Yoffset: height / 4
+    
+    
 };
+let mouseOffset = {
+    x:0 ,
+    y:0
+}
+let xMove = true
+let yMove = true
+
+let bullets = [];
+
+
+class Player {
+    constructor() {
+        // Initialize the player at the origin (0, 0)
+        this.x = width/2;
+        this.y = height/2;
+        this.radius = 20;
+        this.color = "ghostwhite";
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.fill();
+        ctx.closePath();
+    }
+
+
+
+    update() {
+        if (movement[0] && !movement[1]) {
+            Yvelocity = Math.max(Yvelocity - 0.2, -3);
+        }
+        if (movement[1] && !movement[0]) {
+            Yvelocity = Math.min(Yvelocity + 0.2, 3);
+        }
+        if (movement[2] && !movement[3]) {
+            Xvelocity = Math.min(Xvelocity + 0.2, 3);
+        }
+        if (movement[3] && !movement[2]) {
+            Xvelocity = Math.max(Xvelocity - 0.2, -3);
+        }
+        
+        
+        camera.y += Yvelocity ;
+        camera.x += Xvelocity  ;
+        this.x += Xvelocity 
+        this.y += Yvelocity
+        // console.log( p.x -width*0.25  , camera.x)
+        this.draw();
+    }
+}
+
+class Bullet{
+    constructor(p , angle){
+        this.x = p.x ;
+        this.y = p.y ;
+        this.radius = 5 ;
+        this.color = "red" ;
+        this.velocity = {
+            x : -Math.cos(angle) * 5 ,
+            y : -Math.sin(angle) * 5
+        }
+    }
+    draw(){
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.fill();
+        ctx.closePath();
+    }
+    update(){
+        this.x += this.velocity.x ;
+        this.y += this.velocity.y ;
+        this.draw()
+    }
+}
+
+let p = new Player();
+let b = new Bullet(p , 1)
+requestAnimationFrame(animate); 
+
+function animate() {
+    clearCanvas();
+
+    // this is to stop the camaera from scrolling past the player this way is the safest way to set it took me 4 hours to get to this I hate camera offsets so much kill me 
+    if(p.x < camera.x + width *0.25){
+        if(mouseOffset.x < 0){
+            xMove=true
+        }
+        else{
+            xMove=false
+        }
+    }
+    if(p.x > camera.x + width *0.75){
+        if(mouseOffset.x > 0){
+            xMove=true
+        }
+        else{
+            xMove=false
+        }
+    }
+    if(p.y < camera.y + height *0.25){
+        if(mouseOffset.y < 0){
+            yMove=true
+        }
+        else{
+            yMove=false
+        }
+    }
+    if(p.y > camera.y + height *0.75){
+        if(mouseOffset.y > 0){
+            yMove=true
+        }
+        else{
+            yMove=false
+        }
+    }
+
+    if(xMove){
+        camera.x += mouseOffset.x
+    }
+    if(yMove){
+        camera.y += mouseOffset.y
+    }
+    console.log(mouseOffset)
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, -camera.x, -camera.y); // Directly set transformation
+    clearCanvas();
+
+    // Draw a stationary red circle for reference
+    ctx.beginPath();
+    ctx.fillStyle = "red";
+    ctx.arc(100, 100 , 30, 0, Math.PI * 2, false);
+    ctx.arc(600 , 600 , 30, 0, Math.PI * 2, false);
+    ctx.fill();
+    ctx.closePath();
+
+    for(let i=0 ; i < bullets.length ; i++){
+        bullets[i].update()
+
+        if(checkOutofBounds(bullets[i] , p)){
+            bullets.splice(i , 1);
+            i-- ;
+        }
+    }
+    
+    p.update();
+
+    ctx.restore(); // Restore the canvas state to its original
+    
+    requestAnimationFrame(animate);
+}
+
+function clearCanvas() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(camera.x, camera.y, width, height);
+}
+
+function checkOutofBounds(bullet , player){
+    if(bullet.x > (player.x + width) || bullet.x < (player.x - width)){
+        return true ;
+    }
+    if(bullet.y > (player.y + height) || bullet.y < (player.y - height)){
+        return true ;
+    }
+
+    return false ;
+}
 
 window.addEventListener("keydown", event => {
     if (event.key === 'w') {
@@ -47,95 +215,23 @@ window.addEventListener("keyup", event => {
         Xvelocity = 0;
     }
 });
-class Player {
-    constructor() {
-        // Initialize the player at the origin (0, 0)
-        this.x = width/2;
-        this.y = height/2;
-        this.radius = 20;
-        this.color = "green";
+window.addEventListener("click" , event=>{
+    x = p.x - camera.x ;
+    y = p.y - camera.y ;
+    let angle = Math.atan2(y - event.y , x - event.x )
+    let b = new Bullet(p , angle);
+    bullets.push(b)
+})
+window.addEventListener("mousemove" , event =>{
+    if(((event.x < width * 0.25 || event.x > width * 0.75) || (event.y < height * 0.25 || event.y > height * 0.75))  ){
+        mouseOffset.x = -(width / 2 - event.clientX) / 140;
+        mouseOffset.y = -(height / 2 - event.clientY ) / 140;
     }
-    draw() {
-        ctx.beginPath();
-        ctx.fillStyle = this.color;
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        ctx.fill();
-        ctx.closePath();
+    else{
+        mouseOffset.x = 0 ;
+        mouseOffset.y = 0 ;
     }
-
-
-
-    update() {
-        if (movement[0] && !movement[1]) {
-            Yvelocity = Math.max(Yvelocity - 0.2, -4);
-        }
-        if (movement[1] && !movement[0]) {
-            Yvelocity = Math.min(Yvelocity + 0.2, 4);
-        }
-        if (movement[2] && !movement[3]) {
-            Xvelocity = Math.min(Xvelocity + 0.2, 4);
-        }
-        if (movement[3] && !movement[2]) {
-            Xvelocity = Math.max(Xvelocity - 0.2, -4);
-        }
-
-        this.y += Yvelocity;
-        this.x += Xvelocity;
-
-        this.draw();
-    }
-}
-
-class Bullet{
-    constructor(p){
-        this.x = p.x ;
-        this.y = p.y ;
-        this.radius = 10 ;
-        this.color = "red" ;
-    }
-    draw(){
-
-    }
-    }
-
-let p = new Player();
-requestAnimationFrame(animate);
-
-function animate() {
-    clearCanvas();
-
-    // Update camera position based on player movement
-    if (p.x - camera.x > camera.Xoffset + width/2) {
-        camera.x = p.x - camera.Xoffset - width/2;
-    } else if (p.x - camera.x < camera.Xoffset) {
-        camera.x = p.x - camera.Xoffset;
-    }
-
-    if (p.y - camera.y > camera.Yoffset + height/2) {
-        camera.y = p.y - camera.Yoffset - height /2;
-    } else if (p.y - camera.y < camera.Yoffset) {
-        camera.y = p.y - camera.Yoffset;
-    }
-    console.log(p.x , p.y)
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, -camera.x, -camera.y); // Directly set transformation
-
-    clearCanvas();
-
-    // Draw a stationary red circle for reference
-    ctx.beginPath();
-    ctx.fillStyle = "red";
-    ctx.arc(200, 200, 30, 0, Math.PI * 2, false);
-    ctx.fill();
-    ctx.closePath();
-
-    p.update();
-
-    ctx.restore(); // Restore the canvas state to its original
-    requestAnimationFrame(animate);
-}
-
-function clearCanvas() {
-    ctx.fillStyle = "black";
-    ctx.fillRect(camera.x, camera.y, width, height);
-}
+    
+    
+    
+})
