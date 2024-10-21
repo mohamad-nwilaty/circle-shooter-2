@@ -7,6 +7,10 @@ canvas.height = height;
 let movement = [false, false, false, false];
 let Xvelocity = 0;
 let Yvelocity = 0;
+let weapon = "shotgun" ;
+let rifleInterval = null ;
+let mouseX = 0 ;
+let mouseY = 0 ;
 let camera = {
     x: 0,
     y: 0,
@@ -72,8 +76,8 @@ class Bullet{
         this.radius = 5 ;
         this.color = "red" ;
         this.velocity = {
-            x : -Math.cos(angle) * 5 ,
-            y : -Math.sin(angle) * 5
+            x : -Math.cos(angle) * 6 ,
+            y : -Math.sin(angle) * 6
         }
     }
     draw(){
@@ -137,7 +141,7 @@ function animate() {
     if(yMove){
         camera.y += mouseOffset.y
     }
-    console.log(mouseOffset)
+  
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, -camera.x, -camera.y); // Directly set transformation
     clearCanvas();
@@ -181,6 +185,23 @@ function checkOutofBounds(bullet , player){
 
     return false ;
 }
+function shoot(event){
+    x = p.x - camera.x ;
+    y = p.y - camera.y ;
+    let angle = Math.atan2(y - event.y , x - event.x )
+    if(weapon == "pistol"){
+        let b = new Bullet(p , angle);
+        bullets.push(b)
+    }
+    else if(weapon == "shotgun"){
+        let spread = -0.15
+        for(let i =0 ; i<6 ; i++){
+            let b = new Bullet(p , angle + spread );
+            spread += 0.05
+            bullets.push(b)
+        }
+    }
+}
 
 window.addEventListener("keydown", event => {
     if (event.key === 'w') {
@@ -215,14 +236,11 @@ window.addEventListener("keyup", event => {
         Xvelocity = 0;
     }
 });
-window.addEventListener("click" , event=>{
-    x = p.x - camera.x ;
-    y = p.y - camera.y ;
-    let angle = Math.atan2(y - event.y , x - event.x )
-    let b = new Bullet(p , angle);
-    bullets.push(b)
-})
+
 window.addEventListener("mousemove" , event =>{
+    mouseX = event.clientX;
+    mouseY = event.clientY; // track the mouse for the rifle stream to follow the mouse
+    
     if(((event.x < width * 0.25 || event.x > width * 0.75) || (event.y < height * 0.25 || event.y > height * 0.75))  ){
         mouseOffset.x = -(width / 2 - event.clientX) / 140;
         mouseOffset.y = -(height / 2 - event.clientY ) / 140;
@@ -231,7 +249,25 @@ window.addEventListener("mousemove" , event =>{
         mouseOffset.x = 0 ;
         mouseOffset.y = 0 ;
     }
-    
-    
-    
 })
+window.addEventListener("mousedown" , event =>{
+    if(weapon == "rifle"){
+        rifleInterval = setInterval(()=>{
+            x = p.x - camera.x;
+            y = p.y - camera.y;
+            let angle = Math.atan2(y - mouseY, x - mouseX);
+            let b = new Bullet(p , angle);
+            bullets.push(b)
+        }, 100)
+    }
+    else{
+        shoot(event)
+    }
+})
+window.addEventListener("mouseup" , event =>{
+    if(rifleInterval){
+        clearInterval(rifleInterval) ;
+        rifleInterval = null ;
+    }
+})
+
